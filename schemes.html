@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Government Schemes — KhetGPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  .page-hero { text-align: center; padding: 46px 20px 10px; position: relative; z-index: 1; }
+  .page-hero-icon { font-size: 48px; display: inline-block; animation: floatSlow 3s ease-in-out infinite; }
+
+  .search-form { max-width: 560px; margin: 24px auto; position: relative; z-index: 1; display: flex; gap: 10px; }
+  .search-form input { flex: 1; }
+
+  .result-area { max-width: 700px; margin: 0 auto 30px; position: relative; z-index: 1; }
+  .answer-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 20px 22px; position: relative; overflow: hidden; display: none;
+  }
+  .answer-card.show { display: block; animation: cardPop 0.4s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes cardPop { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .answer-card::before { content: ''; position: absolute; top:0; left:0; right:0; height: 6px; background: repeating-linear-gradient(90deg, var(--lavender-bright) 0 10px, transparent 10px 20px); }
+  .answer-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--rust); margin-bottom: 10px; }
+
+  .page-wrap { max-width: 900px; margin: 0 auto; padding: 0 20px 80px; position: relative; z-index: 1; }
+  .schemes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .scheme-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 20px; position: relative; overflow: hidden; cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .scheme-card:hover { transform: translateY(-3px); }
+  .scheme-card::before { content: ''; position: absolute; top:0; left:0; right:0; height: 5px; background: repeating-linear-gradient(90deg, var(--gold) 0 8px, transparent 8px 16px); }
+  .scheme-name { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .scheme-snippet { font-size: 12.5px; color: #555; line-height: 1.5; max-height: 4.5em; overflow: hidden; }
+  .scheme-snippet.expanded { max-height: none; }
+  .scheme-toggle { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--rust); margin-top: 8px; display: inline-block; }
+
+  .loading-msg { text-align: center; font-family: 'IBM Plex Mono', monospace; color: var(--paper-dim); font-size: 13px; padding: 10px; display: none; }
+  .loading-msg.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="firefly-layer" id="fireflyLayer"></div>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">🌾 KhetGPT</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="diagnose.html" class="nav-link">Diagnose</a>
+    <a href="weather.html" class="nav-link">Weather</a>
+    <a href="mandi.html" class="nav-link">Mandi</a>
+    <a href="satellite.html" class="nav-link">Satellite</a>
+    <a href="schemes.html" class="nav-link active">Schemes</a>
+    <a href="portal.html" class="nav-link">Kisan Portal</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <span class="page-hero-icon">📜</span>
+  <h1 class="section-title" style="margin-top:10px;">Government Schemes</h1>
+  <p class="section-sub">Browse, or ask a question in your own words</p>
+</div>
+
+<div class="search-form">
+  <input type="text" id="askInput" placeholder="e.g. Is there insurance for crop damage?">
+  <button class="btn btn-gold" onclick="askScheme()">Ask</button>
+</div>
+
+<div class="loading-msg" id="loadingMsg">Searching schemes <span class="loading-dots"><span></span></span></div>
+
+<div class="result-area">
+  <div class="answer-card" id="answerCard"></div>
+</div>
+
+<div class="page-wrap">
+  <div class="schemes-grid" id="schemesGrid"></div>
+</div>
+
+<footer class="site-footer">🌾 KhetGPT — Your AI Field Companion</footer>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const SCHEME_NAMES = {
+  pm_kisan: "PM-KISAN",
+  pmfby: "PMFBY — Crop Insurance",
+  kcc: "Kisan Credit Card",
+  soil_health_card: "Soil Health Card",
+  pm_kusum: "PM-KUSUM — Solar Energy",
+  enam: "e-NAM — Digital Market"
+};
+
+async function loadSchemes() {
+  try {
+    const res = await fetch(API_BASE + "/schemes/list");
+    const schemes = await res.json();
+    const grid = document.getElementById("schemesGrid");
+    grid.innerHTML = schemes.map(s => `
+      <div class="scheme-card" onclick="this.querySelector('.scheme-snippet').classList.toggle('expanded'); this.querySelector('.scheme-toggle').textContent = this.querySelector('.scheme-snippet').classList.contains('expanded') ? 'Show less ↑' : 'Read more →'">
+        <div class="scheme-name">${SCHEME_NAMES[s.id] || s.id}</div>
+        <div class="scheme-snippet">${s.text}</div>
+        <span class="scheme-toggle">Read more →</span>
+      </div>
+    `).join("");
+  } catch {
+    document.getElementById("schemesGrid").innerHTML = `<p style="text-align:center; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; font-size:13px;">Could not connect to backend — is it running on port 8000?</p>`;
+  }
+}
+
+async function askScheme() {
+  const question = document.getElementById("askInput").value.trim();
+  if (!question) return;
+  const loadingMsg = document.getElementById("loadingMsg");
+  const answerCard = document.getElementById("answerCard");
+  answerCard.classList.remove("show");
+  loadingMsg.classList.add("active");
+
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: question })
+    });
+    const data = await res.json();
+    loadingMsg.classList.remove("active");
+    answerCard.innerHTML = `<div class="answer-label">Answer</div><div style="font-size:14px; line-height:1.6;">${data.response}</div>`;
+    answerCard.classList.add("show");
+  } catch {
+    loadingMsg.classList.remove("active");
+    answerCard.innerHTML = `<div class="answer-label">Error</div><div>Could not connect to backend.</div>`;
+    answerCard.classList.add("show");
+  }
+}
+
+document.getElementById("askInput").addEventListener("keydown", (e) => { if (e.key === "Enter") askScheme(); });
+
+loadSchemes();
+
+const fireflyLayer = document.getElementById("fireflyLayer");
+function spawnFirefly() {
+  const f = document.createElement("div");
+  f.className = "firefly";
+  f.style.left = (Math.random() * 100) + "vw";
+  f.style.setProperty("--drift", ((Math.random() - 0.5) * 120) + "px");
+  const duration = 9 + Math.random() * 8;
+  f.style.animationDuration = duration + "s, 2.4s";
+  f.style.animationDelay = (Math.random() * 4) + "s, 0s";
+  fireflyLayer.appendChild(f);
+  setTimeout(() => f.remove(), (duration + 4) * 1000);
+}
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  for (let i = 0; i < 5; i++) setTimeout(spawnFirefly, i * 900);
+  setInterval(spawnFirefly, 2400);
+}
+</script>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>

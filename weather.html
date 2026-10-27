@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Risk — KhetGPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  .page-hero { text-align: center; padding: 46px 20px 10px; position: relative; z-index: 1; }
+  .page-hero-icon { font-size: 48px; display: inline-block; animation: floatSlow 3s ease-in-out infinite; }
+
+  .sky-scene {
+    max-width: 700px; margin: 20px auto; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(180deg, #2a3a5c 0%, #4a90c4 60%, #6fb3e0 100%);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  .sky-scene svg { width: 100%; display: block; }
+
+  .location-form {
+    max-width: 500px; margin: 24px auto; position: relative; z-index: 1;
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  }
+  .location-form .field { flex: 1; min-width: 140px; margin-bottom: 0; }
+
+  .result-area { max-width: 640px; margin: 30px auto; position: relative; z-index: 1; }
+  .risk-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 24px; position: relative; overflow: hidden;
+    animation: cardPop 0.4s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes cardPop { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .risk-card::before { content: ''; position: absolute; top:0; left:0; right:0; height: 6px; background: repeating-linear-gradient(90deg, var(--sky-bright) 0 10px, transparent 10px 20px); }
+
+  .risk-badge {
+    display: inline-block; padding: 6px 16px; border-radius: 20px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+  }
+  .risk-low { background: #d4ead0; color: #3d6b32; }
+  .risk-moderate { background: #f7e6b8; color: #8a6816; }
+  .risk-high { background: #f5cfc4; color: #a13a1f; }
+
+  .risk-reason { font-size: 15px; line-height: 1.6; }
+  .risk-city { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--rust); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .loading-msg { text-align: center; font-family: 'IBM Plex Mono', monospace; color: var(--paper-dim); font-size: 13px; padding: 20px; display: none; }
+  .loading-msg.active { display: block; }
+
+  .how-it-works {
+    max-width: 640px; margin: 50px auto 0; position: relative; z-index: 1;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--paper-dim);
+    border-top: 1px dashed var(--line); padding-top: 20px; line-height: 1.7;
+  }
+  .how-it-works strong { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="firefly-layer" id="fireflyLayer"></div>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">🌾 KhetGPT</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="diagnose.html" class="nav-link">Diagnose</a>
+    <a href="weather.html" class="nav-link active">Weather</a>
+    <a href="mandi.html" class="nav-link">Mandi</a>
+    <a href="satellite.html" class="nav-link">Satellite</a>
+    <a href="schemes.html" class="nav-link">Schemes</a>
+    <a href="portal.html" class="nav-link">Kisan Portal</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <span class="page-hero-icon">🌦️</span>
+  <h1 class="section-title" style="margin-top:10px;">Weather Risk</h1>
+  <p class="section-sub">5-day forecast-based disease risk for your field</p>
+</div>
+
+<div class="sky-scene">
+  <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="590" cy="50" r="30" fill="#f6cf6a" class="pulse-soft"/>
+    <g class="cloud-drift" style="animation-duration:30s">
+      <ellipse cx="120" cy="60" rx="50" ry="18" fill="#eee7d6" opacity="0.85"/>
+      <ellipse cx="160" cy="50" rx="36" ry="16" fill="#eee7d6" opacity="0.85"/>
+    </g>
+    <g class="cloud-drift" style="animation-duration:22s; animation-delay:-10s">
+      <ellipse cx="380" cy="90" rx="40" ry="14" fill="#eee7d6" opacity="0.7"/>
+      <ellipse cx="410" cy="82" rx="28" ry="12" fill="#eee7d6" opacity="0.7"/>
+    </g>
+    <g stroke="#eee7d6" stroke-width="2" fill="none" opacity="0.6">
+      <path class="float-slow" d="M480,40 q6,-8 12,0 q6,-8 12,0"/>
+      <path class="float-slow" d="M520,25 q6,-8 12,0 q6,-8 12,0" style="animation-delay:-2s"/>
+    </g>
+    <path d="M0,150 Q350,120 700,150 L700,200 L0,200 Z" fill="#131c2e"/>
+    <g stroke="#8bb562" stroke-width="4" stroke-linecap="round">
+      <g class="sway"><line x1="50" y1="180" x2="50" y2="150"/><line x1="50" y1="150" x2="44" y2="135"/><line x1="50" y1="150" x2="56" y2="135"/></g>
+      <g class="sway" style="animation-delay:-0.5s"><line x1="90" y1="184" x2="90" y2="152"/><line x1="90" y1="152" x2="84" y2="137"/><line x1="90" y1="152" x2="96" y2="137"/></g>
+      <g class="sway" style="animation-delay:-1s"><line x1="600" y1="182" x2="600" y2="150"/><line x1="600" y1="150" x2="594" y2="135"/><line x1="600" y1="150" x2="606" y2="135"/></g>
+      <g class="sway" style="animation-delay:-1.5s"><line x1="640" y1="185" x2="640" y2="153"/><line x1="640" y1="153" x2="634" y2="138"/><line x1="640" y1="153" x2="646" y2="138"/></g>
+    </g>
+  </svg>
+</div>
+
+<div class="location-form">
+  <div class="field">
+    <label>Latitude</label>
+    <input type="number" step="0.0001" id="latInput" value="26.8467">
+  </div>
+  <div class="field">
+    <label>Longitude</label>
+    <input type="number" step="0.0001" id="lonInput" value="80.9462">
+  </div>
+  <button class="btn btn-outline" style="align-self:flex-end; height:44px;" onclick="useMyLocation()" id="geoBtn">📍 Use My Location</button>
+  <button class="btn btn-gold" style="align-self:flex-end; height:44px;" onclick="checkWeather()">Check Risk</button>
+</div>
+
+<div class="loading-msg" id="loadingMsg">Reading the sky <span class="loading-dots"><span></span></span></div>
+
+<div class="result-area" id="resultArea"></div>
+
+<div class="how-it-works">
+  <strong>How this works:</strong> KhetGPT pulls a live 5-day forecast (temperature +
+  humidity, every 3 hours) for your coordinates from OpenWeatherMap. It flags
+  <strong>high risk</strong> when extended periods of high humidity (&gt;75%) combine with
+  warm temperatures (20–30°C) — the exact conditions fungal diseases like blight
+  and rust thrive in. Default coordinates above are set to Lucknow, UP — change
+  them to your own field's location for an accurate reading.
+</div>
+
+<footer class="site-footer">🌾 KhetGPT — Your AI Field Companion</footer>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+const loadingMsg = document.getElementById("loadingMsg");
+const resultArea = document.getElementById("resultArea");
+
+function useMyLocation() {
+  const geoBtn = document.getElementById("geoBtn");
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+  geoBtn.textContent = "📍 Locating...";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      document.getElementById("latInput").value = position.coords.latitude.toFixed(4);
+      document.getElementById("lonInput").value = position.coords.longitude.toFixed(4);
+      geoBtn.textContent = "📍 Use My Location";
+      checkWeather();
+    },
+    (error) => {
+      geoBtn.textContent = "📍 Use My Location";
+      alert("Could not get your location: " + error.message + ". Make sure location access is allowed for this site in your browser settings.");
+    }
+  );
+}
+
+async function checkWeather() {
+  const lat = document.getElementById("latInput").value;
+  const lon = document.getElementById("lonInput").value;
+  resultArea.innerHTML = "";
+  loadingMsg.classList.add("active");
+
+  try {
+    const res = await fetch(API_BASE + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `What is the weather disease risk at latitude ${lat}, longitude ${lon}?` })
+    });
+    const data = await res.json();
+    loadingMsg.classList.remove("active");
+    renderRisk(data.response);
+  } catch {
+    loadingMsg.classList.remove("active");
+    resultArea.innerHTML = `<p style="text-align:center; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; font-size:13px;">Could not connect to backend — is it running on port 8000?</p>`;
+  }
+}
+
+function renderRisk(text) {
+  let badgeClass = "risk-low";
+  let badgeText = "Low Risk";
+  if (/high/i.test(text)) { badgeClass = "risk-high"; badgeText = "High Risk"; }
+  else if (/moderate/i.test(text)) { badgeClass = "risk-moderate"; badgeText = "Moderate Risk"; }
+
+  const card = document.createElement("div");
+  card.className = "risk-card";
+  card.innerHTML = `
+    <span class="risk-badge ${badgeClass}">${badgeText}</span>
+    <div class="risk-reason">${text}</div>
+  `;
+  resultArea.appendChild(card);
+}
+
+// Auto-check on page load with default location
+checkWeather();
+
+const fireflyLayer = document.getElementById("fireflyLayer");
+function spawnFirefly() {
+  const f = document.createElement("div");
+  f.className = "firefly";
+  f.style.left = (Math.random() * 100) + "vw";
+  f.style.setProperty("--drift", ((Math.random() - 0.5) * 120) + "px");
+  const duration = 9 + Math.random() * 8;
+  f.style.animationDuration = duration + "s, 2.4s";
+  f.style.animationDelay = (Math.random() * 4) + "s, 0s";
+  fireflyLayer.appendChild(f);
+  setTimeout(() => f.remove(), (duration + 4) * 1000);
+}
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  for (let i = 0; i < 5; i++) setTimeout(spawnFirefly, i * 900);
+  setInterval(spawnFirefly, 2400);
+}
+</script>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kisan Portal — KhetGPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  .page-hero { text-align: center; padding: 46px 20px 10px; position: relative; z-index: 1; }
+  .page-hero-icon { font-size: 48px; display: inline-block; animation: floatSlow 3s ease-in-out infinite; }
+
+  .portal-wrap { max-width: 640px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* Auth box */
+  .auth-box {
+    background: var(--navy-mid); border: 1px solid var(--gold-dim); border-radius: 8px;
+    padding: 30px 28px; max-width: 420px; margin: 20px auto;
+  }
+  .auth-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .auth-tab {
+    flex: 1; padding: 8px; text-align: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    background: var(--navy-deep); border: 1px solid var(--gold-dim);
+    color: var(--paper-dim); cursor: pointer; border-radius: 4px;
+  }
+  .auth-tab.active { background: var(--gold); color: var(--ink); border-color: var(--gold); font-weight: 700; }
+  .auth-row { display: flex; gap: 10px; }
+  .auth-row .field { flex: 1; }
+  .auth-error { color: var(--rust); font-family: 'IBM Plex Mono', monospace; font-size: 12px; margin-top: 10px; min-height: 14px; }
+
+  /* Profile card */
+  .profile-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 24px; position: relative; overflow: hidden; margin-bottom: 20px;
+  }
+  .profile-card::before { content: ''; position: absolute; top:0; left:0; right:0; height: 6px; background: repeating-linear-gradient(90deg, var(--lavender-bright) 0 10px, transparent 10px 20px); }
+  .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .profile-name { font-family: 'Alfa Slab One', serif; font-size: 22px; }
+  .logout-btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--rust); background: none; border: 1px solid var(--rust); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .profile-stat-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--rust); }
+  .profile-stat-value { font-weight: 600; font-size: 15px; text-transform: capitalize; }
+  .edit-btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); background: var(--paper-dim); border: none; border-radius: 4px; padding: 8px 14px; cursor: pointer; }
+
+  /* Advisory card */
+  .advisory-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 24px; position: relative; overflow: hidden; margin-bottom: 20px;
+    display: none;
+  }
+  .advisory-card.show { display: block; animation: cardPop 0.4s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes cardPop { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .advisory-card::before { content: ''; position: absolute; top:0; left:0; right:0; height: 6px; background: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 20px); }
+  .advisory-meta { display: flex; gap: 14px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--rust); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--paper-dim); }
+  .advisory-text { font-size: 14px; line-height: 1.6; }
+
+  /* Notifications */
+  .notif-list { display: flex; flex-direction: column; gap: 10px; }
+  .notif-item {
+    background: var(--navy-mid); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 16px; font-size: 13px;
+  }
+  .notif-type { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--gold); letter-spacing: 0.5px; }
+  .notif-empty { text-align: center; color: var(--paper-dim); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 20px; }
+
+  .loading-msg { text-align: center; font-family: 'IBM Plex Mono', monospace; color: var(--paper-dim); font-size: 13px; padding: 20px; display: none; }
+  .loading-msg.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="firefly-layer" id="fireflyLayer"></div>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">🌾 KhetGPT</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="diagnose.html" class="nav-link">Diagnose</a>
+    <a href="weather.html" class="nav-link">Weather</a>
+    <a href="mandi.html" class="nav-link">Mandi</a>
+    <a href="satellite.html" class="nav-link">Satellite</a>
+    <a href="schemes.html" class="nav-link">Schemes</a>
+    <a href="portal.html" class="nav-link active">Kisan Portal</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <span class="page-hero-icon">🧑‍🌾</span>
+  <h1 class="section-title" style="margin-top:10px;">Kisan Portal</h1>
+  <p class="section-sub">Your profile, your crop, your personalized advisory</p>
+</div>
+
+<div class="portal-wrap">
+
+  <!-- Auth section (shown when logged out) -->
+  <div id="authSection">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin">Login</div>
+        <div class="auth-tab" id="tabSignup">Sign Up</div>
+      </div>
+
+      <form id="loginForm">
+        <div class="field"><label>Username</label><input type="text" id="loginUsername" required></div>
+        <div class="field"><label>Password</label><input type="password" id="loginPassword" required></div>
+        <button class="btn btn-gold" style="width:100%; justify-content:center;" type="submit">Log In</button>
+      </form>
+
+      <form id="signupForm" style="display:none">
+        <div class="field"><label>Username</label><input type="text" id="suUsername" required></div>
+        <div class="field"><label>Password</label><input type="password" id="suPassword" required></div>
+        <div class="auth-row">
+          <div class="field">
+            <label>Crop</label>
+            <select id="suCrop">
+              <option value="wheat">Wheat</option>
+              <option value="rice">Rice</option>
+              <option value="tomato">Tomato</option>
+              <option value="potato">Potato</option>
+              <option value="corn">Corn</option>
+              <option value="grape">Grape</option>
+              <option value="bellpepper">Bell Pepper</option>
+              <option value="soyabean">Soyabean</option>
+            </select>
+          </div>
+          <div class="field"><label>Land (acres)</label><input type="number" step="0.1" id="suLand" placeholder="5"></div>
+        </div>
+        <div class="field"><label>Sowing Date</label><input type="date" id="suSowing"></div>
+        <div class="auth-row">
+          <div class="field"><label>State</label><input type="text" id="suState" placeholder="Uttar Pradesh"></div>
+          <div class="field"><label>District</label><input type="text" id="suDistrict" placeholder="Lucknow"></div>
+        </div>
+        <button class="btn btn-gold" style="width:100%; justify-content:center;" type="submit">Create Account</button>
+      </form>
+
+      <div class="auth-error" id="authError"></div>
+    </div>
+  </div>
+
+  <!-- Logged-in section -->
+  <div id="loggedInSection" style="display:none">
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-name" id="profileName">👤 Farmer</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <div class="profile-grid" id="profileGrid"></div>
+      <button class="edit-btn" onclick="toggleEditProfile()">✏️ Edit Profile</button>
+      <div id="editProfileForm" style="display:none; margin-top:16px;">
+        <div class="auth-row">
+          <div class="field">
+            <label>Crop</label>
+            <select id="editCrop">
+              <option value="wheat">Wheat</option><option value="rice">Rice</option>
+              <option value="tomato">Tomato</option><option value="potato">Potato</option>
+              <option value="corn">Corn</option><option value="grape">Grape</option>
+              <option value="bellpepper">Bell Pepper</option><option value="soyabean">Soyabean</option>
+            </select>
+          </div>
+          <div class="field"><label>Land (acres)</label><input type="number" step="0.1" id="editLand"></div>
+        </div>
+        <div class="field"><label>Sowing Date</label><input type="date" id="editSowing"></div>
+        <div class="auth-row">
+          <div class="field"><label>State</label><input type="text" id="editState"></div>
+          <div class="field"><label>District</label><input type="text" id="editDistrict"></div>
+        </div>
+        <button class="btn btn-gold" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-bottom:20px;">
+      <button class="btn btn-gold" onclick="loadAdvisory()">🧑‍🌾 Get My Personalized Advisory</button>
+    </div>
+
+    <div class="loading-msg" id="loadingMsg">Analyzing your field <span class="loading-dots"><span></span></span></div>
+
+    <div class="advisory-card" id="advisoryCard"></div>
+
+    <h2 class="section-title" style="font-size:22px;" id="notifications-title">🔔 Notifications</h2>
+    <div class="notif-list" id="notifList"><div class="notif-empty">Loading...</div></div>
+  </div>
+
+</div>
+
+<footer class="site-footer">🌾 KhetGPT — Your AI Field Companion</footer>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+function getToken() { return localStorage.getItem("khetgpt_token"); }
+function setToken(t) { localStorage.setItem("khetgpt_token", t); }
+function clearToken() { localStorage.removeItem("khetgpt_token"); localStorage.removeItem("khetgpt_username"); }
+function authHeaders() { const t = getToken(); return t ? { "Authorization": "Bearer " + t } : {}; }
+
+const tabLogin = document.getElementById("tabLogin");
+const tabSignup = document.getElementById("tabSignup");
+const loginForm = document.getElementById("loginForm");
+const signupForm = document.getElementById("signupForm");
+const authError = document.getElementById("authError");
+const authSection = document.getElementById("authSection");
+const loggedInSection = document.getElementById("loggedInSection");
+
+tabLogin.addEventListener("click", () => {
+  tabLogin.classList.add("active"); tabSignup.classList.remove("active");
+  loginForm.style.display = "block"; signupForm.style.display = "none"; authError.textContent = "";
+});
+tabSignup.addEventListener("click", () => {
+  tabSignup.classList.add("active"); tabLogin.classList.remove("active");
+  signupForm.style.display = "block"; loginForm.style.display = "none"; authError.textContent = "";
+});
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  authError.textContent = "";
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  try {
+    const res = await fetch(API_BASE + "/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { authError.textContent = data.detail || "Login failed"; return; }
+    setToken(data.token);
+    localStorage.setItem("khetgpt_username", username);
+    showLoggedIn();
+  } catch { authError.textContent = "Connection error"; }
+});
+
+signupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  authError.textContent = "";
+  const payload = {
+    username: document.getElementById("suUsername").value.trim(),
+    password: document.getElementById("suPassword").value,
+    crop: document.getElementById("suCrop").value,
+    land_size_acres: parseFloat(document.getElementById("suLand").value) || null,
+    sowing_date: document.getElementById("suSowing").value || null,
+    state: document.getElementById("suState").value.trim() || null,
+    district: document.getElementById("suDistrict").value.trim() || null,
+  };
+  try {
+    const res = await fetch(API_BASE + "/signup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) { authError.textContent = data.detail || "Signup failed"; return; }
+    setToken(data.token);
+    localStorage.setItem("khetgpt_username", payload.username);
+    showLoggedIn();
+  } catch { authError.textContent = "Connection error"; }
+});
+
+function logout() { clearToken(); location.reload(); }
+
+async function showLoggedIn() {
+  authSection.style.display = "none";
+  loggedInSection.style.display = "block";
+  await loadProfile();
+  await loadNotifications();
+}
+
+async function loadProfile() {
+  try {
+    const res = await fetch(API_BASE + "/profile", { headers: authHeaders() });
+    const p = await res.json();
+    document.getElementById("profileName").textContent = "👤 " + p.username;
+    document.getElementById("profileGrid").innerHTML = `
+      <div><div class="profile-stat-label">Crop</div><div class="profile-stat-value">${p.crop || "—"}</div></div>
+      <div><div class="profile-stat-label">Land</div><div class="profile-stat-value">${p.land_size_acres || "—"} acres</div></div>
+      <div><div class="profile-stat-label">Sowing Date</div><div class="profile-stat-value">${p.sowing_date || "—"}</div></div>
+      <div><div class="profile-stat-label">Location</div><div class="profile-stat-value">${p.district || "—"}, ${p.state || "—"}</div></div>
+    `;
+    document.getElementById("editCrop").value = p.crop || "wheat";
+    document.getElementById("editLand").value = p.land_size_acres || "";
+    document.getElementById("editSowing").value = p.sowing_date || "";
+    document.getElementById("editState").value = p.state || "";
+    document.getElementById("editDistrict").value = p.district || "";
+  } catch { /* silent */ }
+}
+
+function toggleEditProfile() {
+  const form = document.getElementById("editProfileForm");
+  form.style.display = form.style.display === "none" ? "block" : "none";
+}
+
+async function saveProfile() {
+  const payload = {
+    crop: document.getElementById("editCrop").value,
+    land_size_acres: parseFloat(document.getElementById("editLand").value) || null,
+    sowing_date: document.getElementById("editSowing").value || null,
+    state: document.getElementById("editState").value.trim() || null,
+    district: document.getElementById("editDistrict").value.trim() || null,
+  };
+  try {
+    await fetch(API_BASE + "/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    toggleEditProfile();
+    loadProfile();
+  } catch { /* silent */ }
+}
+
+async function loadAdvisory() {
+  const loadingMsg = document.getElementById("loadingMsg");
+  const advisoryCard = document.getElementById("advisoryCard");
+  advisoryCard.classList.remove("show");
+  loadingMsg.classList.add("active");
+  try {
+    const res = await fetch(API_BASE + "/advisory", { method: "POST", headers: authHeaders() });
+    const data = await res.json();
+    loadingMsg.classList.remove("active");
+    if (!res.ok) return;
+    const stage = data.growth_stage;
+    advisoryCard.innerHTML = `
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--rust); font-weight:600; margin-bottom:12px;">Your Personal Field Advisory</div>
+      <div class="advisory-meta">
+        <span>🌱 ${stage.stage}${stage.days_since_sowing !== null ? ' (Day ' + stage.days_since_sowing + ')' : ''}</span>
+        <span>🌦️ ${data.weather_summary}</span>
+        <span>💰 ${data.mandi_summary}</span>
+      </div>
+      <div class="advisory-text">${data.advisory}</div>
+    `;
+    advisoryCard.classList.add("show");
+    loadNotifications();
+  } catch { loadingMsg.classList.remove("active"); }
+}
+
+async function loadNotifications() {
+  const notifList = document.getElementById("notifList");
+  try {
+    const res = await fetch(API_BASE + "/notifications", { headers: authHeaders() });
+    const items = await res.json();
+    if (items.length === 0) { notifList.innerHTML = `<div class="notif-empty">No notifications yet — get your advisory above!</div>`; return; }
+    notifList.innerHTML = items.map(n => `
+      <div class="notif-item"><span class="notif-type">${n.type}</span><br>${n.message}</div>
+    `).join("");
+  } catch { notifList.innerHTML = `<div class="notif-empty">Could not load notifications</div>`; }
+}
+
+// Auto-login if already logged in
+if (getToken()) { showLoggedIn(); }
+
+const fireflyLayer = document.getElementById("fireflyLayer");
+function spawnFirefly() {
+  const f = document.createElement("div");
+  f.className = "firefly";
+  f.style.left = (Math.random() * 100) + "vw";
+  f.style.setProperty("--drift", ((Math.random() - 0.5) * 120) + "px");
+  const duration = 9 + Math.random() * 8;
+  f.style.animationDuration = duration + "s, 2.4s";
+  f.style.animationDelay = (Math.random() * 4) + "s, 0s";
+  fireflyLayer.appendChild(f);
+  setTimeout(() => f.remove(), (duration + 4) * 1000);
+}
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  for (let i = 0; i < 5; i++) setTimeout(spawnFirefly, i * 900);
+  setInterval(spawnFirefly, 2400);
+}
+</script>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+/* ============================================================
+   KhetGPT — Shared Design System
+   Mandi-ledger aesthetic: deep indigo night + turmeric gold +
+   rust accents, evoking evening fields and market rate-boards.
+   ============================================================ */
+
+:root {
+  --navy: #131c2e;
+  --navy-deep: #0a0f1c;
+  --navy-mid: #1a2438;
+  --gold: #e3b341;
+  --gold-dim: #b8903a;
+  --gold-bright: #f6cf6a;
+  --paper: #eee7d6;
+  --paper-dim: #d9d0ba;
+  --rust: #b5502f;
+  --ink: #1c1a15;
+  --green: #6b8f47;
+  --green-bright: #8bb562;
+  --sky: #4a7c9e;
+  --sky-bright: #6fa3c7;
+  --lavender: #8b6fa8;
+  --lavender-bright: #ab8fc9;
+  --line: rgba(227, 179, 65, 0.14);
+}
+
+/* ---------- Accent color utilities (per-feature theming) ---------- */
+.accent-gold::before { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 20px) !important; }
+.accent-sky::before { background: repeating-linear-gradient(90deg, var(--sky-bright) 0 10px, transparent 10px 20px) !important; }
+.accent-rust::before { background: repeating-linear-gradient(90deg, var(--rust) 0 10px, transparent 10px 20px) !important; }
+.accent-green::before { background: repeating-linear-gradient(90deg, var(--green-bright) 0 10px, transparent 10px 20px) !important; }
+.accent-lavender::before { background: repeating-linear-gradient(90deg, var(--lavender-bright) 0 10px, transparent 10px 20px) !important; }
+
+.feature-tile.tile-rust:hover { border-color: var(--rust); box-shadow: 0 10px 26px rgba(181,80,47,0.22); }
+.feature-tile.tile-sky:hover { border-color: var(--sky-bright); box-shadow: 0 10px 26px rgba(111,163,199,0.22); }
+.feature-tile.tile-gold:hover { border-color: var(--gold); box-shadow: 0 10px 26px rgba(227,179,65,0.22); }
+.feature-tile.tile-green:hover { border-color: var(--green-bright); box-shadow: 0 10px 26px rgba(139,181,98,0.22); }
+.feature-tile.tile-lavender:hover { border-color: var(--lavender-bright); box-shadow: 0 10px 26px rgba(171,143,201,0.22); }
+
+* { box-sizing: border-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  .firefly, .cloud-drift, .sway { display: none !important; animation: none !important; }
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--navy-deep);
+  background-image:
+    radial-gradient(ellipse at top, rgba(227,179,65,0.07) 0%, transparent 55%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: auto, 30px 30px, 30px 30px;
+  font-family: 'Work Sans', sans-serif;
+  color: var(--paper);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+a { color: inherit; }
+
+/* ---------- Ambient fireflies (used on all pages) ---------- */
+.firefly-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.firefly {
+  position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px 2px rgba(246,207,106,0.7);
+  animation: drift-up linear infinite, glow 2.4s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes drift-up {
+  0% { transform: translate(0,0); opacity: 0; }
+  8% { opacity: 0.9; }
+  50% { transform: translate(var(--drift,30px), -50vh); }
+  92% { opacity: 0.7; }
+  100% { transform: translate(calc(var(--drift,30px) * 2), -105vh); opacity: 0; }
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(246,207,106,0.4); }
+  50% { box-shadow: 0 0 10px 3px rgba(246,207,106,0.9); }
+}
+
+/* ---------- Nav ---------- */
+.site-nav {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(19,28,46,0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 2px solid var(--gold);
+  flex-wrap: wrap; gap: 10px;
+}
+.nav-brand {
+  font-family: 'Alfa Slab One', serif;
+  font-size: 22px; color: var(--gold);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+  text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--paper-dim); text-decoration: none;
+  padding: 8px 12px; border-radius: 4px;
+  border: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.nav-link:hover { color: var(--gold); border-color: var(--gold-dim); background: rgba(227,179,65,0.06); }
+.nav-link.active { color: var(--ink); background: var(--gold); font-weight: 700; }
+
+/* ---------- Scroll reveal ---------- */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.in { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ---------- Page container ---------- */
+.page-wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* ---------- Section titles ---------- */
+.section-title {
+  font-family: 'Alfa Slab One', serif;
+  color: var(--gold);
+  font-size: clamp(24px, 4vw, 38px);
+  margin: 0 0 6px;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+}
+.section-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px; color: var(--paper-dim);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  margin-bottom: 24px;
+}
+
+/* ---------- Generic card ---------- */
+.card {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--paper-dim); border-radius: 6px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: repeating-linear-gradient(90deg, var(--rust) 0 10px, transparent 10px 20px);
+}
+.card.card-green::before { background: repeating-linear-gradient(90deg, var(--green) 0 10px, transparent 10px 20px); }
+.card.card-gold::before { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 20px); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 4px; border: none;
+  font-family: 'Work Sans', sans-serif; font-weight: 700; font-size: 14px;
+  cursor: pointer; text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-gold { background: var(--gold); color: var(--ink); }
+.btn-gold:hover { background: var(--gold-bright); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(227,179,65,0.3); }
+.btn-outline { background: transparent; color: var(--gold); border: 1px solid var(--gold-dim); }
+.btn-outline:hover { border-color: var(--gold); background: rgba(227,179,65,0.08); }
+
+/* ---------- Form fields (shared across pages) ---------- */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--paper-dim); margin-bottom: 5px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; padding: 11px 13px;
+  background: var(--navy-deep); border: 1px solid var(--gold-dim);
+  border-radius: 4px; color: var(--paper);
+  font-family: 'Work Sans', sans-serif; font-size: 14px;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+/* ---------- Farmer SVG illustration animations ---------- */
+.sway { transform-origin: bottom center; animation: swayMotion 4s ease-in-out infinite; }
+@keyframes swayMotion { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+
+.float-slow { animation: floatSlow 5s ease-in-out infinite; }
+@keyframes floatSlow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+.spin-slow { animation: spinSlow 40s linear infinite; transform-origin: center; }
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+
+.cloud-drift { animation: cloudDrift 25s linear infinite; }
+@keyframes cloudDrift { from { transform: translateX(-10%); } to { transform: translateX(110%); } }
+
+.pulse-soft { animation: pulseSoft 2.5s ease-in-out infinite; }
+@keyframes pulseSoft { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* ---------- Footer ---------- */
+.site-footer {
+  position: relative; z-index: 1;
+  text-align: center; padding: 30px 20px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--paper-dim); border-top: 1px solid var(--line);
+}
+
+/* ---------- Floating chat widget (shared across all pages) ---------- */
+.chat-fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 50;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--gold); color: var(--ink);
+  border: none; font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(227,179,65,0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.chat-fab:hover { transform: scale(1.08); background: var(--gold-bright); }
+.chat-fab.open { background: var(--rust); color: var(--paper); }
+
+.chat-panel {
+  position: fixed; bottom: 96px; right: 24px; z-index: 50;
+  width: min(360px, calc(100vw - 40px)); height: min(480px, calc(100vh - 160px));
+  background: var(--navy); border: 1px solid var(--gold-dim); border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  display: none; flex-direction: column; overflow: hidden;
+}
+.chat-panel.open { display: flex; animation: chatPanelIn 0.25s ease; }
+@keyframes chatPanelIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.chat-panel-header {
+  padding: 12px 16px; background: var(--navy-mid); border-bottom: 2px solid var(--gold);
+  font-family: 'Alfa Slab One', serif; font-size: 15px; color: var(--gold);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.chat-panel-close { background: none; border: none; color: var(--paper-dim); font-size: 18px; cursor: pointer; }
+
+.chat-panel-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { max-width: 85%; padding: 10px 13px; border-radius: 4px; font-size: 13px; line-height: 1.45; }
+.chat-msg.user { align-self: flex-end; background: var(--gold); color: var(--ink); font-weight: 500; }
+.chat-msg.bot { align-self: flex-start; background: var(--paper); color: var(--ink); border-left: 3px solid var(--rust); }
+.chat-msg.system { align-self: center; color: var(--paper-dim); font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-align: center; }
+
+.chat-typing { align-self: flex-start; display: flex; gap: 4px; padding: 10px 13px; }
+.chat-typing span { width: 5px; height: 5px; background: var(--gold); border-radius: 50%; animation: chatBounce 1.2s infinite ease-in-out; }
+.chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes chatBounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+.chat-panel-input { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--line); background: var(--navy-mid); }
+.chat-panel-input input {
+  flex: 1; padding: 9px 11px; border-radius: 4px; border: 1px solid var(--gold-dim);
+  background: var(--navy-deep); color: var(--paper); font-family: 'Work Sans', sans-serif; font-size: 13px;
+}
+.chat-panel-input input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.chat-panel-input button {
+  width: 36px; height: 36px; border-radius: 4px; border: 1px solid var(--gold-dim);
+  background: var(--navy-deep); color: var(--gold); cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chat-panel-input button:hover { background: var(--gold); color: var(--ink); }
+.chat-panel-input button.mic-active { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+@media (max-width: 700px) {
+  .nav-links { width: 100%; justify-content: center; }
+  .site-nav { justify-content: center; text-align: center; }
+}

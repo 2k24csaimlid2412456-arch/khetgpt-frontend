@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crop Diagnosis — KhetGPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  .page-hero { text-align: center; padding: 46px 20px 10px; position: relative; z-index: 1; }
+  .page-hero-icon { font-size: 48px; display: inline-block; animation: floatSlow 3s ease-in-out infinite; }
+
+  .upload-zone {
+    max-width: 560px; margin: 30px auto; position: relative; z-index: 1;
+    border: 2px dashed var(--gold-dim); border-radius: 10px;
+    padding: 40px 24px; text-align: center;
+    background: rgba(19,28,46,0.5);
+    transition: border-color 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--gold); background: rgba(227,179,65,0.06); }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 44px; margin-bottom: 10px; display: block; }
+  .upload-text { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--paper-dim); }
+  .upload-text strong { color: var(--gold); }
+
+  .scan-preview {
+    position: relative; width: 220px; height: 220px; margin: 20px auto;
+    border: 2px solid var(--rust); border-radius: 6px; overflow: hidden; display: none;
+  }
+  .scan-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scan-preview.active { display: block; }
+  .scan-preview::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 2px; top: 0;
+    background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+    animation: scanline 1.6s ease-in-out infinite;
+  }
+  @keyframes scanline { 0% { top: 0; } 100% { top: 100%; } }
+
+  .result-area { max-width: 640px; margin: 30px auto; position: relative; z-index: 1; }
+
+  .diagnosis-card {
+    background: var(--paper); color: var(--ink); border-radius: 6px;
+    padding: 22px 24px; position: relative; overflow: hidden;
+    animation: cardPop 0.4s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes cardPop { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .diagnosis-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: repeating-linear-gradient(90deg, var(--rust) 0 10px, transparent 10px 20px);
+  }
+  .diagnosis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px dashed var(--paper-dim); }
+  .diagnosis-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--rust); font-weight: 600; }
+  .stamp {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    border: 2px solid var(--green); color: var(--green);
+    padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1px;
+    opacity: 0; animation: stampIn 0.4s cubic-bezier(.2,.8,.3,1.4) 0.5s forwards;
+  }
+  @keyframes stampIn { from { opacity: 0; transform: rotate(-16deg) scale(1.6); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
+
+  .candidate { margin-bottom: 14px; }
+  .candidate:last-child { margin-bottom: 0; }
+  .candidate-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+  .candidate-name { font-weight: 600; text-transform: capitalize; }
+  .candidate-pct { font-family: 'IBM Plex Mono', monospace; color: var(--rust); }
+  .bar-track { height: 7px; background: var(--paper-dim); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--green-bright)); border-radius: 3px; transition: width 0.7s cubic-bezier(.2,.8,.2,1); }
+
+  .medicine-box { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--paper-dim); }
+  .medicine-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--rust); margin-bottom: 6px; }
+  .medicine-name { font-weight: 600; font-size: 15px; margin-bottom: 10px; }
+  .medicine-buy { display: inline-block; background: var(--green); color: var(--paper); padding: 9px 18px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: 700; }
+  .medicine-buy:hover { background: var(--green-bright); }
+
+  .loading-msg { text-align: center; font-family: 'IBM Plex Mono', monospace; color: var(--paper-dim); font-size: 13px; padding: 20px; display: none; }
+  .loading-msg.active { display: block; }
+  .loading-dots span { display: inline-block; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; margin: 0 2px; animation: bounce 1.2s infinite ease-in-out; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-5px); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div class="firefly-layer" id="fireflyLayer"></div>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">🌾 KhetGPT</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="diagnose.html" class="nav-link active">Diagnose</a>
+    <a href="weather.html" class="nav-link">Weather</a>
+    <a href="mandi.html" class="nav-link">Mandi</a>
+    <a href="satellite.html" class="nav-link">Satellite</a>
+    <a href="schemes.html" class="nav-link">Schemes</a>
+    <a href="portal.html" class="nav-link">Kisan Portal</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <span class="page-hero-icon">🔬</span>
+  <h1 class="section-title" style="margin-top:10px;">Crop Diagnosis</h1>
+  <p class="section-sub">Upload a leaf photo — get disease detection + treatment in seconds</p>
+</div>
+
+<div class="upload-zone" id="uploadZone">
+  <input type="file" id="fileInput" accept="image/*">
+  <span class="upload-icon">📷</span>
+  <div class="upload-text"><strong>Click to upload</strong> or drag a leaf photo here</div>
+  <div class="scan-preview" id="scanPreview"><img id="previewImg" src="" alt="Uploaded leaf"></div>
+</div>
+
+<div class="loading-msg" id="loadingMsg">
+  Analyzing leaf pattern <span class="loading-dots"><span></span><span></span><span></span></span>
+</div>
+
+<div class="result-area" id="resultArea"></div>
+
+<footer class="site-footer">🌾 KhetGPT — Your AI Field Companion</footer>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+const uploadZone = document.getElementById("uploadZone");
+const fileInput = document.getElementById("fileInput");
+const scanPreview = document.getElementById("scanPreview");
+const previewImg = document.getElementById("previewImg");
+const loadingMsg = document.getElementById("loadingMsg");
+const resultArea = document.getElementById("resultArea");
+
+uploadZone.addEventListener("click", () => fileInput.click());
+uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+uploadZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove("dragover");
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", (e) => {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  const imageUrl = URL.createObjectURL(file);
+  previewImg.src = imageUrl;
+  scanPreview.classList.add("active");
+  resultArea.innerHTML = "";
+  loadingMsg.classList.add("active");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  fetch(API_BASE + "/diagnose", { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+      loadingMsg.classList.remove("active");
+      renderDiagnosis(data.predictions, data.warning, data.pipeline);
+    })
+    .catch(() => {
+      loadingMsg.classList.remove("active");
+      resultArea.innerHTML = `<p style="text-align:center; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; font-size:13px;">Could not connect to backend — is it running on port 8000?</p>`;
+    });
+}
+
+function renderDiagnosis(predictions, warning, pipeline) {
+  const card = document.createElement("div");
+  card.className = "diagnosis-card";
+
+  const candidatesHtml = predictions.map((p, i) => {
+    const pct = Math.round(p.confidence * 100);
+    const label = p.class.replace(/_/g, " ");
+    return `
+      <div class="candidate">
+        <div class="candidate-row"><span class="candidate-name">${label}</span><span class="candidate-pct">${pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill" data-pct="${pct}" style="transition-delay:${i * 0.12}s"></div></div>
+      </div>`;
+  }).join("");
+
+  const warningHtml = warning
+    ? `<div style="background:#fbeee0; border-left:3px solid var(--rust); padding:10px 14px; margin-bottom:14px; font-size:12.5px; color:#7a3d1f; border-radius:3px;">⚠️ ${warning}</div>`
+    : "";
+
+  let pipelineHtml = "";
+  if (pipeline) {
+    const iv = pipeline.image_validation;
+    const cc = pipeline.crop_classification;
+    const dc = pipeline.disease_classification;
+    const stageStyle = "display:flex; align-items:center; gap:10px; padding:8px 0; font-size:12.5px;";
+    const arrowStyle = "color:var(--paper-dim); text-align:center; font-size:11px; padding:2px 0;";
+    pipelineHtml = `
+      <div style="background:#f5f0e3; border:1px solid var(--paper-dim); border-radius:4px; padding:12px 16px; margin-bottom:16px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--rust); margin-bottom:8px;">Analysis Pipeline</div>
+        <div style="${stageStyle}"><span>${iv.passed ? "✅" : "⚠️"}</span><span><strong>Image Validation</strong> — leaf-likelihood score: ${Math.round(iv.leaf_likelihood * 100)}%</span></div>
+        <div style="${arrowStyle}">↓</div>
+        <div style="${stageStyle}"><span>🌱</span><span><strong>Crop Classifier</strong> — ${cc.crop} (${Math.round(cc.confidence * 100)}% confidence)</span></div>
+        <div style="${arrowStyle}">↓</div>
+        <div style="${stageStyle}"><span>🌿</span><span><strong>Disease Model</strong> — ${dc.disease.replace(/_/g," ")} (${Math.round(dc.confidence * 100)}% confidence, given crop)</span></div>
+        <div style="${arrowStyle}">↓</div>
+        <div style="${stageStyle}"><span>💊</span><span><strong>Agro Intelligence</strong> — generating treatment suggestion below</span></div>
+      </div>`;
+  }
+
+  card.innerHTML = `
+    ${warningHtml}
+    ${pipelineHtml}
+    <div class="diagnosis-header">
+      <span class="diagnosis-title">Field Report — Top Matches</span>
+      <span class="stamp">Analyzed</span>
+    </div>
+    ${candidatesHtml}
+    <div class="medicine-box" id="medicineBox">Loading treatment info...</div>
+  `;
+  resultArea.appendChild(card);
+
+  requestAnimationFrame(() => {
+    card.querySelectorAll(".bar-fill").forEach(bar => { bar.style.width = bar.dataset.pct + "%"; });
+  });
+
+  const topClass = predictions[0].class;
+  fetch(`${API_BASE}/medicine/${topClass}`)
+    .then(res => res.json())
+    .then(med => {
+      const box = card.querySelector("#medicineBox");
+      if (!med.needs_treatment) {
+        box.innerHTML = `<div class="medicine-label">Status</div><div class="medicine-name">✅ ${med.message}</div>`;
+      } else {
+        const buyBtn = med.purchase_link
+          ? `<a class="medicine-buy" href="${med.purchase_link}" target="_blank" rel="noopener">🛒 Buy ${med.treatment.split(" ")[0]}</a>`
+          : "";
+        box.innerHTML = `<div class="medicine-label">Suggested Treatment</div><div class="medicine-name">${med.treatment}</div>${buyBtn}`;
+      }
+    })
+    .catch(() => { const box = card.querySelector("#medicineBox"); if (box) box.remove(); });
+}
+
+const fireflyLayer = document.getElementById("fireflyLayer");
+function spawnFirefly() {
+  const f = document.createElement("div");
+  f.className = "firefly";
+  f.style.left = (Math.random() * 100) + "vw";
+  f.style.setProperty("--drift", ((Math.random() - 0.5) * 120) + "px");
+  const duration = 9 + Math.random() * 8;
+  f.style.animationDuration = duration + "s, 2.4s";
+  f.style.animationDelay = (Math.random() * 4) + "s, 0s";
+  fireflyLayer.appendChild(f);
+  setTimeout(() => f.remove(), (duration + 4) * 1000);
+}
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  for (let i = 0; i < 5; i++) setTimeout(spawnFirefly, i * 900);
+  setInterval(spawnFirefly, 2400);
+}
+</script>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>
